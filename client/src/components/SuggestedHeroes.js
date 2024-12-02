@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useDraftContext } from '../context/DraftContext';
-import { teamAnalysisService } from '../services/teamAnalysisService';
+import { awsWrapper } from '../../../backend/config/aws-wrapper';
 
 const Container = styled(Box)({
   backgroundColor: 'transparent',
@@ -125,95 +125,40 @@ function SuggestedHeroes() {
     };
   }, [clickTimeout]);
 
-  const getSuggestedHeroes = () => {
-    const allyHeroes = state.allyTeam.filter(hero => hero !== null);
-    const enemyHeroes = state.enemyTeam.filter(hero => hero !== null);
+  const getSuggestions = async () => {
+    try {
+      const suggestions = await awsWrapper.callService(
+        'SuggestedHeroes',
+        'getSuggestions',
+        {
+          allyTeam: state.allyTeam,
+          enemyTeam: state.enemyTeam,
+          userPreferences: currentUser.preferences
+        }
+      );
 
-    // If no heroes selected, return empty array
-    if (allyHeroes.length === 0 && enemyHeroes.length === 0) {
+      // Track suggestions in batch
+      await awsWrapper.batchCall(
+        suggestions.map(suggestion => ({
+          component: 'SuggestedHeroes',
+          method: 'trackSuggestionAccuracy',
+          args: [suggestion.id]
+        }))
+      );
+
+      return suggestions;
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+      // Show user-friendly error message
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: 'Unable to load suggestions. Please try again.' 
+      });
       return [];
     }
-
-    // Get all available heroes
-    const availableHeroes = state.heroes.filter(hero => 
-      !state.allyTeam.some(h => h?.id === hero.id) &&
-      !state.enemyTeam.some(h => h?.id === hero.id)
-    );
-
-    // Count roles in current team
-    const currentRoles = {
-      CARRY: 0,
-      SUPPORT: 0,
-      INITIATOR: 0,
-      DURABLE: 0,
-      NUKER: 0,
-      DISABLER: 0
-    };
-
-    allyHeroes.forEach(hero => {
-      if (hero.roles) {
-        hero.roles.forEach(role => {
-          if (currentRoles.hasOwnProperty(role)) {
-            currentRoles[role]++;
-          }
-        });
-      }
-    });
-
-    return availableHeroes.map(hero => {
-      let score = 50; // Start with base score
-
-      // Role balance score (0-30 points)
-      if (hero.roles) {
-        hero.roles.forEach(role => {
-          if (currentRoles[role] === 0) {
-            score += 10; // Bonus for filling missing role
-          } else if (currentRoles[role] >= 2) {
-            score -= 5;  // Penalty for redundant role
-          }
-        });
-      }
-
-      // Pros and Cons score (0-20 points)
-      if (hero.pros) {
-        score += Math.min(hero.pros.length * 5, 10);
-      }
-      if (hero.cons) {
-        score -= Math.min(hero.cons.length * 5, 10);
-      }
-
-      // Ability synergy score (0-20 points)
-      if (hero.abilities) {
-        const hasDisable = hero.abilities.some(ability => 
-          ability.description?.toLowerCase().includes('stun') ||
-          ability.description?.toLowerCase().includes('disable')
-        );
-        const hasEscape = hero.abilities.some(ability =>
-          ability.description?.toLowerCase().includes('blink') ||
-          ability.description?.toLowerCase().includes('escape')
-        );
-        
-        if (hasDisable && currentRoles.DISABLER === 0) score += 10;
-        if (hasEscape && !allyHeroes.some(h => 
-          h.abilities?.some(a => 
-            a.description?.toLowerCase().includes('escape')
-          )
-        )) score += 10;
-      }
-
-      // Small random factor (0-5 points) to break ties
-      score += Math.random() * 5;
-
-      return {
-        ...hero,
-        confidence: Math.min(Math.max(Math.round(score), 0), 100)
-      };
-    })
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, 5);
   };
 
-  const suggestions = getSuggestedHeroes();
+  const suggestions = getSuggestions();
 
   if (suggestions.length === 0) {
     return (

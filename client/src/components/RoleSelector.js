@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Select, MenuItem } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useDraftContext } from '../context/DraftContext';
+import { RoleSelector as awsServices } from '../../../backend/config/aws-services';
 
 const Container = styled(Box)({
   display: 'flex',
@@ -72,6 +73,15 @@ function RoleSelector() {
 
   const handleChange = (event) => {
     dispatch({ type: 'SET_LANE', payload: event.target.value });
+  };
+
+  const fetchHeroesByRole = async (role) => {
+    try {
+      const heroes = await awsServices.methods.getHeroesByRole(role);
+      setFilteredHeroes(heroes);
+    } catch (error) {
+      console.error('Error fetching heroes:', error);
+    }
   };
 
   return (

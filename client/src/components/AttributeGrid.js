@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { StrengthIcon, AgilityIcon, IntelligenceIcon, UniversalIcon } from '../assets/icons/AttributeIcons';
-import heroService from '../services/heroService';
+import { AttributeGrid as awsServices } from '../../../backend/config/aws-services';
 import { useDraftContext } from '../context/DraftContext';
 
 const GridContainer = styled(Box)({
@@ -112,8 +112,8 @@ function AttributeGrid({ type, onSearch, searchTerm, highlightedHeroId }) {
     const fetchHeroes = async () => {
       try {
         setError(null);
-        const allHeroes = await heroService.getAllHeroes();
-        const filteredHeroes = heroService.getHeroesByAttribute(allHeroes, type);
+        const allHeroes = await awsServices.methods.getAllHeroes();
+        const filteredHeroes = await awsServices.methods.getHeroesByAttribute(allHeroes, type);
         setHeroes(filteredHeroes);
       } catch (error) {
         console.error('Error fetching heroes:', error);
