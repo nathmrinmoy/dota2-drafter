@@ -110,8 +110,7 @@ function AttributeGrid({ type, onSearch, searchTerm, highlightedHeroId }) {
     const fetchHeroes = async () => {
       try {
         setError(null);
-        const allHeroes = await awsServices.methods.getAllHeroes();
-        const filteredHeroes = await awsServices.methods.getHeroesByAttribute(allHeroes, type);
+        const filteredHeroes = [];
         setHeroes(filteredHeroes);
       } catch (error) {
         console.error('Error fetching heroes:', error);
