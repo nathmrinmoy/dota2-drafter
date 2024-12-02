@@ -1,0 +1,58 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: npm run test:ci
+      
+    - name: Generate test report
+      run: npm run test:analyze
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-results
+        path: test-logs/
+
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v5
+      with:
+        script: |
+          const fs = require('fs');
+          const latestLog = require('./test-logs/latest.json');
+          
+          const summary = `
+          ## Test Results
+          - Total Tests: ${latestLog.summary.totalTests}
+          - Passed: ${latestLog.summary.passedTests}
+          - Failed: ${latestLog.summary.failedTests}
+          
+          ${latestLog.recommendations.map(r => `- ${r.message}`).join('\n')}
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          }); 

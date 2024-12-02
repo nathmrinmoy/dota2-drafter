@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Draft Tool Architecture</title>
+    <style>
+        body {
+            background-color: #111111;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 32px;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .top-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 48px;
+        }
+
+        .team-picks {
+            display: flex;
+            gap: 8px;
+        }
+
+        .team-slot {
+            width: 108px;
+            height: 60px;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 2px;
+        }
+
+        .vs-text {
+            color: #999;
+            font-size: 20px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 32px;
+        }
+
+        .left-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .attribute-grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .attribute-grid {
+            background-color: #111111;
+            padding: 16px;
+            border-radius: 2px;
+        }
+
+        .grid-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .grid-header-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+        }
+
+        .grid-header-icon.strength { background-color: #ff4d4d; }
+        .grid-header-icon.agility { background-color: #4dff4d; }
+        .grid-header-icon.intelligence { background-color: #4d4dff; }
+        .grid-header-icon.universal { background-color: #ffff4d; }
+
+        .grid-header-text {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 32px);
+            grid-template-rows: repeat(4, 32px);
+            gap: 1px;
+            background-color: #1a1a1a;
+        }
+
+        .hero-icon {
+            width: 32px;
+            height: 32px;
+            background-color: #1e1e1e;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .hero-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-icon:hover .hero-tooltip {
+            opacity: 1;
+        }
+
+        .hero-tooltip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 10px;
+            padding: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .right-section {
+            width: 300px;
+            background-color: #1a1a1a;
+            border-radius: 2px;
+            padding: 16px;
+        }
+
+        .confidence-score {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .hero-stats {
+            color: #999;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* New styles for Role Selector */
+        .role-selector {
+            background-color: #1a1a1a;
+            padding: 16px;
+            border-radius: 2px;
+        }
+
+        .role-selector select {
+            width: 100%;
+            padding: 8px;
+            background-color: #1e1e1e;
+            color: #fff;
+            border: 1px solid #333;
+            border-radius: 2px;
+        }
+
+        /* Styles for Suggested Heroes */
+        .suggested-heroes {
+            background-color: #1a1a1a;
+            padding: 16px;
+            border-radius: 2px;
+        }
+
+        .suggested-hero-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background-color: #1e1e1e;
+            margin-bottom: 8px;
+            border-radius: 2px;
+        }
+
+        .hero-image-placeholder {
+            width: 64px;
+            height: 36px;
+            background-color: #262626;
+            border-radius: 2px;
+        }
+
+        .hero-info {
+            flex: 1;
+        }
+
+        .hero-name {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .hero-confidence {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .footer {
+            margin-top: 48px;
+            padding: 24px 0;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #222;
+        }
+
+        .footer a {
+            color: #999;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="team-picks">
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+            </div>
+            <div class="vs-text">VS</div>
+            <div class="team-picks">
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+                <div class="team-slot"></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-section">
+                <div class="attribute-grid-container">
+                    <div class="attribute-grid">
+                        <div class="grid-header">
+                            <div class="grid-header-icon strength"></div>
+                            <div class="grid-header-text">STRENGTH</div>
+                        </div>
+                        <div class="grid">
+                            <!-- Example hero icon -->
+                            <div class="hero-icon">
+                                <img src="path_to_hero_icon.png" alt="Hero Name">
+                                <div class="hero-tooltip">Hero Name</div>
+                            </div>
+                            <!-- More hero icons... -->
+                        </div>
+                    </div>
+                    <div class="attribute-grid">
+                        <div class="grid-header">
+                            <div class="grid-header-icon agility"></div>
+                            <div class="grid-header-text">AGILITY</div>
+                        </div>
+                        <div class="grid">
+                            <!-- Example hero icon -->
+                            <div class="hero-icon">
+                                <img src="path_to_hero_icon.png" alt="Hero Name">
+                                <div class="hero-tooltip">Hero Name</div>
+                            </div>
+                            <!-- More hero icons... -->
+                        </div>
+                    </div>
+                    <div class="attribute-grid">
+                        <div class="grid-header">
+                            <div class="grid-header-icon intelligence"></div>
+                            <div class="grid-header-text">INTELLIGENCE</div>
+                        </div>
+                        <div class="grid">
+                            <!-- Example hero icon -->
+                            <div class="hero-icon">
+                                <img src="path_to_hero_icon.png" alt="Hero Name">
+                                <div class="hero-tooltip">Hero Name</div>
+                            </div>
+                            <!-- More hero icons... -->
+                        </div>
+                    </div>
+                    <div class="attribute-grid">
+                        <div class="grid-header">
+                            <div class="grid-header-icon universal"></div>
+                            <div class="grid-header-text">UNIVERSAL</div>
+                        </div>
+                        <div class="grid">
+                            <!-- Example hero icon -->
+                            <div class="hero-icon">
+                                <img src="path_to_hero_icon.png" alt="Hero Name">
+                                <div class="hero-tooltip">Hero Name</div>
+                            </div>
+                            <!-- More hero icons... -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Role Selector -->
+                <div class="role-selector">
+                    <select>
+                        <option value="">Select Role</option>
+                        <option value="carry">Carry</option>
+                        <option value="support">Support</option>
+                        <option value="initiator">Initiator</option>
+                        <option value="nuker">Nuker</option>
+                        <option value="durable">Durable</option>
+                    </select>
+                </div>
+
+                <!-- Add Suggested Heroes -->
+                <div class="suggested-heroes">
+                    <div class="grid-header">SUGGESTED HEROES</div>
+                    <div class="suggested-hero-card">
+                        <div class="hero-image-placeholder"></div>
+                        <div class="hero-info">
+                            <div class="hero-name">Pudge</div>
+                            <div class="hero-confidence">83% confidence</div>
+                        </div>
+                    </div>
+                    <div class="suggested-hero-card">
+                        <div class="hero-image-placeholder"></div>
+                        <div class="hero-info">
+                            <div class="hero-name">Axe</div>
+                            <div class="hero-confidence">78% confidence</div>
+                        </div>
+                    </div>
+                    <div class="suggested-hero-card">
+                        <div class="hero-image-placeholder"></div>
+                        <div class="hero-info">
+                            <div class="hero-name">Crystal Maiden</div>
+                            <div class="hero-confidence">75% confidence</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-section">
+                <div class="confidence-score">
+                    CONFIDENCE SCORE: 51%
+                </div>
+                <div class="hero-stats">
+                    STRENGTH: 25 + 3.0<br>
+                    AGILITY: 11 + 1.4<br>
+                    INTELLIGENCE: 16 + 1.8
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>
+            This tool uses data from the <a href="https://docs.opendota.com/" target="_blank" rel="noopener noreferrer">OpenDota API</a>
+        </p>
+        <p>
+            Dota 2 is a registered trademark of Valve Corporation. 
+            This site is not affiliated with or endorsed by Valve Corporation. 
+            All game images and names are property of Valve Corporation.
+        </p>
+        <p>
+            Created for educational purposes only. No commercial use intended.
+        </p>
+    </footer>
+
+    <script>
+        // Helper function to convert hero name to OpenDota API format
+        function getHeroImageName(heroName) {
+            return heroName
+                .toLowerCase()
+                .replace(/\s/g, '_')
+                .replace(/[']/g, '')
+                .replace(/^npc_dota_hero_/, '');
+        }
+
+        // Function to create hero icons using OpenDota API
+        function createHeroIcon(hero) {
+            const div = document.createElement('div');
+            div.className = 'hero-icon';
+            const heroImageName = getHeroImageName(hero.name);
+            div.innerHTML = `
+                <img src="https://api.opendota.com/apps/dota2/images/heroes/${heroImageName}_icon.png" 
+                     alt="${hero.name}"
+                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 fill=%22%231e1e1e%22/></svg>'">
+                <div class="hero-tooltip">${hero.name}</div>
+            `;
+            return div;
+        }
+
+        // Hero data for each attribute
+        const strengthHeroes = [
+            // Row 1
+            { name: 'Axe', icon: 'axe_icon.png' },
+            { name: 'Earthshaker', icon: 'earthshaker_icon.png' },
+            { name: 'Pudge', icon: 'pudge_icon.png' },
+            { name: 'Sand King', icon: 'sand_king_icon.png' },
+            { name: 'Sven', icon: 'sven_icon.png' },
+            { name: 'Tiny', icon: 'tiny_icon.png' },
+            { name: 'Kunkka', icon: 'kunkka_icon.png' },
+            { name: 'Slardar', icon: 'slardar_icon.png' },
+            { name: 'Tidehunter', icon: 'tidehunter_icon.png' },
+            { name: 'Wraith King', icon: 'wraith_king_icon.png' },
+            { name: 'Lifestealer', icon: 'lifestealer_icon.png' },
+            { name: 'Night Stalker', icon: 'night_stalker_icon.png' },
+            // Row 2
+            { name: 'Doom', icon: 'doom_icon.png' },
+            { name: 'Spirit Breaker', icon: 'spirit_breaker_icon.png' },
+            { name: 'Alchemist', icon: 'alchemist_icon.png' },
+            { name: 'Lycan', icon: 'lycan_icon.png' },
+            { name: 'Brewmaster', icon: 'brewmaster_icon.png' },
+            { name: 'Chaos Knight', icon: 'chaos_knight_icon.png' },
+            { name: 'Treant Protector', icon: 'treant_icon.png' },
+            { name: 'Io', icon: 'io_icon.png' },
+            { name: 'Centaur Warrunner', icon: 'centaur_icon.png' },
+            { name: 'Timbersaw', icon: 'timbersaw_icon.png' },
+            { name: 'Bristleback', icon: 'bristleback_icon.png' },
+            { name: 'Tusk', icon: 'tusk_icon.png' }
+        ];
+
+        const agilityHeroes = [
+            // Row 1
+            { name: 'Anti-Mage', icon: 'antimage_icon.png' },
+            { name: 'Drow Ranger', icon: 'drow_ranger_icon.png' },
+            { name: 'Juggernaut', icon: 'juggernaut_icon.png' },
+            { name: 'Mirana', icon: 'mirana_icon.png' },
+            { name: 'Morphling', icon: 'morphling_icon.png' },
+            { name: 'Phantom Lancer', icon: 'phantom_lancer_icon.png' },
+            { name: 'Vengeful Spirit', icon: 'vengeful_spirit_icon.png' },
+            { name: 'Riki', icon: 'riki_icon.png' },
+            { name: 'Sniper', icon: 'sniper_icon.png' },
+            { name: 'Templar Assassin', icon: 'templar_assassin_icon.png' },
+            { name: 'Luna', icon: 'luna_icon.png' },
+            { name: 'Bounty Hunter', icon: 'bounty_hunter_icon.png' },
+            // Row 2
+            { name: 'Ursa', icon: 'ursa_icon.png' },
+            { name: 'Gyrocopter', icon: 'gyrocopter_icon.png' },
+            { name: 'Naga Siren', icon: 'naga_siren_icon.png' },
+            { name: 'Troll Warlord', icon: 'troll_warlord_icon.png' },
+            { name: 'Ember Spirit', icon: 'ember_spirit_icon.png' },
+            { name: 'Monkey King', icon: 'monkey_king_icon.png' },
+            { name: 'Pangolier', icon: 'pangolier_icon.png' },
+            { name: 'Hoodwink', icon: 'hoodwink_icon.png' },
+            { name: 'Dawnbreaker', icon: 'dawnbreaker_icon.png' },
+            { name: 'Muerta', icon: 'muerta_icon.png' }
+        ];
+
+        const intelligenceHeroes = [
+            // Row 1
+            { name: 'Crystal Maiden', icon: 'crystal_maiden_icon.png' },
+            { name: 'Puck', icon: 'puck_icon.png' },
+            { name: 'Storm Spirit', icon: 'storm_spirit_icon.png' },
+            { name: 'Windranger', icon: 'windranger_icon.png' },
+            { name: 'Zeus', icon: 'zeus_icon.png' },
+            { name: 'Lina', icon: 'lina_icon.png' },
+            { name: 'Shadow Shaman', icon: 'shadow_shaman_icon.png' },
+            { name: 'Tinker', icon: 'tinker_icon.png' },
+            { name: 'Nature\'s Prophet', icon: 'natures_prophet_icon.png' },
+            { name: 'Enchantress', icon: 'enchantress_icon.png' },
+            { name: 'Jakiro', icon: 'jakiro_icon.png' },
+            { name: 'Chen', icon: 'chen_icon.png' },
+            // Row 2
+            { name: 'Silencer', icon: 'silencer_icon.png' },
+            { name: 'Ogre Magi', icon: 'ogre_magi_icon.png' },
+            { name: 'Rubick', icon: 'rubick_icon.png' },
+            { name: 'Disruptor', icon: 'disruptor_icon.png' },
+            { name: 'Keeper of the Light', icon: 'keeper_of_the_light_icon.png' },
+            { name: 'Skywrath Mage', icon: 'skywrath_mage_icon.png' },
+            { name: 'Oracle', icon: 'oracle_icon.png' },
+            { name: 'Techies', icon: 'techies_icon.png' }
+        ];
+
+        const universalHeroes = [
+            // Row 1
+            { name: 'Bane', icon: 'bane_icon.png' },
+            { name: 'Lich', icon: 'lich_icon.png' },
+            { name: 'Lion', icon: 'lion_icon.png' },
+            { name: 'Witch Doctor', icon: 'witch_doctor_icon.png' },
+            { name: 'Enigma', icon: 'enigma_icon.png' },
+            { name: 'Necrophos', icon: 'necrophos_icon.png' },
+            { name: 'Warlock', icon: 'warlock_icon.png' },
+            { name: 'Queen of Pain', icon: 'queen_of_pain_icon.png' },
+            { name: 'Death Prophet', icon: 'death_prophet_icon.png' },
+            { name: 'Pugna', icon: 'pugna_icon.png' },
+            { name: 'Dazzle', icon: 'dazzle_icon.png' },
+            { name: 'Leshrac', icon: 'leshrac_icon.png' },
+            // Row 2
+            { name: 'Dark Seer', icon: 'dark_seer_icon.png' },
+            { name: 'Batrider', icon: 'batrider_icon.png' },
+            { name: 'Ancient Apparition', icon: 'ancient_apparition_icon.png' },
+            { name: 'Invoker', icon: 'invoker_icon.png' },
+            { name: 'Outworld Destroyer', icon: 'outworld_destroyer_icon.png' },
+            { name: 'Shadow Demon', icon: 'shadow_demon_icon.png' },
+            { name: 'Visage', icon: 'visage_icon.png' },
+            { name: 'Winter Wyvern', icon: 'winter_wyvern_icon.png' },
+            { name: 'Arc Warden', icon: 'arc_warden_icon.png' },
+            { name: 'Grimstroke', icon: 'grimstroke_icon.png' },
+            { name: 'Void Spirit', icon: 'void_spirit_icon.png' },
+            { name: 'Snapfire', icon: 'snapfire_icon.png' }
+        ];
+
+        // Fill grids with heroes
+        const grids = document.querySelectorAll('.grid');
+        const heroSets = [strengthHeroes, agilityHeroes, intelligenceHeroes, universalHeroes];
+        
+        grids.forEach((grid, index) => {
+            const heroes = heroSets[index];
+            heroes.forEach(hero => {
+                grid.appendChild(createHeroIcon(hero));
+            });
+        });
+    </script>
+</body>
+</html> 
