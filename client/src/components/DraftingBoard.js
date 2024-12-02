@@ -7,7 +7,6 @@ import SuggestedHeroes from './SuggestedHeroes';
 import AttributeGrid from './AttributeGrid';
 import RoleSelector from './RoleSelector';
 import HeroDetails from './HeroDetails';
-import { DraftingBoard as awsServices } from '../../../backend/config/aws-services';
 
 const DraftContainer = styled(Box)({
   background: 'linear-gradient(180deg, #0E1014 0%, #32414D 50%, #141619 100%)',

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useDraftContext } from '../context/DraftContext';
-import { awsWrapper } from '../../../backend/config/aws-wrapper';
 
 const Container = styled(Box)({
   backgroundColor: 'transparent',

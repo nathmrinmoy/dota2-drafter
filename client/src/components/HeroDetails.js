@@ -7,7 +7,6 @@ import AghanimIcon from '../assets/icons/AghanimIcon';
 import AghanimDetails from './AghanimDetails';
 import { useDraftContext } from '../context/DraftContext';
 import { StrengthIcon, AgilityIcon, IntelligenceIcon } from '../assets/icons/AttributeIcons';
-import { HeroDetails as awsServices } from '../../../backend/config/aws-services';
 
 
 
@@ -261,15 +260,6 @@ function HeroDetails({ selectedHero }) {
   const isHeroInTeams = () => {
     return state.allyTeam.some(hero => hero?.id === selectedHero.id) ||
            state.enemyTeam.some(hero => hero?.id === selectedHero.id);
-  };
-
-  const fetchHeroStats = async (heroId) => {
-    try {
-      const stats = await awsServices.methods.getHeroStats(heroId);
-      setHeroStats(stats);
-    } catch (error) {
-      console.error('Error fetching hero stats:', error);
-    }
   };
 
   if (!selectedHero) {
