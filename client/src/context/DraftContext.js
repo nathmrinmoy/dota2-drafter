@@ -45,7 +45,7 @@ function draftReducer(state, action) {
     case 'SET_HEROES':
       return {
         ...state,
-        heroes: action.payload || [],
+        heroes: action.payload,
         loading: false,
         error: null
       };
@@ -64,6 +64,12 @@ function draftReducer(state, action) {
         selectedRole: action.payload
       };
 
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loading: action.payload
+      };
+
     default:
       return state;
   }
@@ -73,42 +79,24 @@ export function DraftContextProvider({ children }) {
   const [state, dispatch] = useReducer(draftReducer, initialState);
 
   useEffect(() => {
-    let mounted = true;
-
     const fetchHeroes = async () => {
       try {
-        // console.log('Fetching heroes...');
+        dispatch({ type: 'SET_LOADING', payload: true });
         const heroes = await heroService.getAllHeroes();
-        console.log('Received heroes:', heroes);
         
-        if (!mounted) return;
-
         if (Array.isArray(heroes) && heroes.length > 0) {
-          console.log('Dispatching heroes:', heroes);
           dispatch({ type: 'SET_HEROES', payload: heroes });
         } else {
-          console.log('No heroes found');
           dispatch({ type: 'SET_ERROR', payload: 'No heroes found' });
         }
       } catch (error) {
-        console.error('Error in fetchHeroes:', error);
-        if (mounted) {
-          dispatch({ type: 'SET_ERROR', payload: error.message });
-        }
+        console.error('Error in DraftContext:', error);
+        dispatch({ type: 'SET_ERROR', payload: error.message });
       }
     };
 
     fetchHeroes();
-    return () => { mounted = false; };
   }, []);
-
-  if (state.loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (state.error) {
-    return <div>Error: {state.error}</div>;
-  }
 
   return (
     <DraftContext.Provider value={{ state, dispatch }}>

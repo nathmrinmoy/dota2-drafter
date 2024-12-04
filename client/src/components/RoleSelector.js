@@ -1,59 +1,52 @@
 import React from 'react';
-import { Box, Typography, Select, MenuItem } from '@mui/material';
+import { Box, Select, MenuItem } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useDraftContext } from '../context/DraftContext';
 
 const Container = styled(Box)({
   display: 'flex',
-  alignItems: 'flex-start',
-  gap: '60px'
-});
-
-const Section = styled(Box)({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px'
-});
-
-const Label = styled(Typography)({
-  color: '#666',
-  fontSize: '12px',
-  letterSpacing: '1px',
-  textTransform: 'uppercase'
+  alignItems: 'center',
+  gap: '16px',
+  marginTop: 'auto',
+  padding: '12px 0',
+  userSelect: 'none'
 });
 
 const StyledSelect = styled(Select)({
-  backgroundColor: '#1a1a1a',
-  color: '#fff',
-  width: '160px',
-  height: '40px',
   '& .MuiSelect-select': {
-    padding: '8px 16px',
+    color: '#fff',
+    fontSize: '14px',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    minWidth: '100px',
+    textAlign: 'center',
+    padding: '0 16px 0 0 !important'
+  },
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: 'transparent'
   },
   '& .MuiOutlinedInput-notchedOutline': {
-    borderColor: '#333',
+    border: 'none'
   },
-  '&:hover .MuiOutlinedInput-notchedOutline': {
-    borderColor: '#444',
+  '& .MuiSelect-icon': {
+    color: '#fff',
+    right: '4px'
   },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-    borderColor: '#555',
-  },
-  '& .MuiSvgIcon-root': {
-    color: '#666',
+  '&:hover': {
+    backgroundColor: '#262626'
   }
 });
 
 const StyledMenuItem = styled(MenuItem)({
   color: '#fff',
-  backgroundColor: '#1a1a1a',
+  backgroundColor: 'transparent',
   '&:hover': {
-    backgroundColor: '#222',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)'
   },
   '&.Mui-selected': {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     '&:hover': {
-      backgroundColor: '#2a2a2a',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)'
     }
   }
 });
@@ -62,29 +55,42 @@ function RoleSelector() {
   const { state, dispatch } = useDraftContext();
 
   const roles = [
-    { value: '', label: 'ALL LANES' },
-    { value: 'mid', label: 'MID LANE' },
-    { value: 'safe', label: 'SAFE LANE' },
-    { value: 'off', label: 'OFF LANE' },
-    { value: 'roam', label: 'ROAMING' },
-    { value: 'support', label: 'SUPPORT' }
+    { value: 'ALL', label: 'ALL ROLES' },
+    { value: 'CARRY', label: 'CARRY' },
+    { value: 'SUPPORT', label: 'SUPPORT' },
+    { value: 'INITIATOR', label: 'INITIATOR' },
+    { value: 'DURABLE', label: 'DURABLE' },
+    { value: 'NUKER', label: 'NUKER' }
   ];
-
-  const handleChange = (event) => {
-    dispatch({ type: 'SET_LANE', payload: event.target.value });
-  };
 
   return (
     <Container>
       <StyledSelect
-        value={state.selectedLane || ''}
-        onChange={handleChange}
+        value={state.selectedRole}
+        onChange={(e) => dispatch({ type: 'SET_ROLE', payload: e.target.value })}
         displayEmpty
+        defaultValue="ALL"
+        MenuProps={{
+          sx: {
+            '& .MuiPaper-root': {
+              backgroundColor: 'rgba(20, 20, 20, 0.7)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              marginTop: '0px'
+            }
+          },
+          anchorOrigin: {
+            vertical: 'bottom',
+            horizontal: 'center'
+          },
+          transformOrigin: {
+            vertical: 'top',
+            horizontal: 'center'
+          }
+        }}
       >
-        <StyledMenuItem value="" disabled>
-          Select Role
-        </StyledMenuItem>
-        {roles.map((role) => (
+        {roles.map(role => (
           <StyledMenuItem key={role.value} value={role.value}>
             {role.label}
           </StyledMenuItem>

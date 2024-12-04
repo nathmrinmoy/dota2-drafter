@@ -1,19 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { useDraftContext } from '../context/DraftContext';
 import { StrengthIcon, AgilityIcon, IntelligenceIcon, UniversalIcon } from '../assets/icons/AttributeIcons';
 
 const GridContainer = styled(Box)({
   display: 'flex',
   flexDirection: 'column',
-  gap: '12px'
+  gap: '12px',
+  alignItems: 'center',
+  width: 'auto',
+  margin: '0 auto',
+  maxWidth: '100%',
+  position: 'relative',
+  overflow: 'visible'
 });
 
 const AttributeHeader = styled(Box)({
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
-  position: 'relative'
+  gap: '4px',
+  width: '100%',
 });
 
 const AttributeLabel = styled(Typography)({
@@ -26,44 +33,32 @@ const AttributeLabel = styled(Typography)({
 const GridSection = styled(Box)({
   display: 'grid',
   gridTemplateColumns: 'repeat(11, 40px)',
-  gridTemplateRows: 'repeat(3, 65px)',
+  gridAutoRows: '65px',
   gap: '12px',
   backgroundColor: 'transparent',
   padding: '4px',
   borderRadius: '2px',
-  justifyContent: 'start'
+  width: 'fit-content',
+  height: 'auto',
+  margin: '0 auto',
+  position: 'relative',
+  overflow: 'visible'
 });
 
-const HeroSlot = styled(Box)(({ hasHero, isHighlighted, $hasHighlightedHero }) => ({
+const HeroCard = styled(Box)(({ isHighlighted, hasHighlightedHero }) => ({
+  position: 'relative',
+  cursor: 'pointer',
   width: '40px',
   height: '65px',
-  backgroundColor: isHighlighted ? 'rgba(42, 42, 42, 0.5)' : 'transparent',
-  position: 'relative',
-  overflow: 'visible',
-  transition: 'all 0.2s',
-  cursor: hasHero ? 'pointer' : 'default',
-  borderRadius: '2px',
-  border: isHighlighted ? '2px solid #4CAF50' : 'none',
-  transform: isHighlighted ? 'scale(1.05)' : 'none',
-  zIndex: isHighlighted ? 1000 : 1,
+  opacity: hasHighlightedHero && !isHighlighted ? 0.2 : 1,
+  transition: 'opacity 0.2s, transform 0.2s',
+  transform: isHighlighted ? 'scale(1.1)' : 'none',
   '&:hover': {
-    backgroundColor: hasHero ? 'rgba(42, 42, 42, 0.3)' : 'transparent',
+    zIndex: 10000,
     '& .hero-tooltip': {
-      opacity: hasHero ? 1 : 0
-    },
-    zIndex: 1000
-  },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    opacity: $hasHighlightedHero && !isHighlighted ? 1 : 0,
-    transition: 'opacity 0.2s',
-    pointerEvents: 'none'
+      opacity: 1,
+      visibility: 'visible'
+    }
   }
 }));
 
@@ -72,24 +67,50 @@ const HeroImage = styled('img')({
   height: '100%',
   objectFit: 'cover',
   borderRadius: '2px',
-  overflow: 'hidden'
+  overflow: 'hidden',
+  '&.loading': {
+    backgroundColor: '#1e1e1e',
+    animation: 'pulse 1.5s infinite'
+  }
 });
 
 const HeroTooltip = styled(Box)({
   position: 'absolute',
-  bottom: '-24px',
+  top: 'calc(100% + 4px)',
   left: '50%',
   transform: 'translateX(-50%)',
-  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  color: '#fff',
-  fontSize: '12px',
-  padding: '4px 8px',
-  textAlign: 'center',
-  opacity: 0,
-  transition: 'opacity 0.2s',
-  whiteSpace: 'nowrap',
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  padding: '8px 12px',
   borderRadius: '4px',
-  zIndex: 1001
+  zIndex: 10001,
+  opacity: 0,
+  visibility: 'hidden',
+  transition: 'opacity 0.2s, visibility 0.2s',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '4px',
+  pointerEvents: 'none',
+  minWidth: 'max-content',
+  '& .hero-name': {
+    color: '#fff',
+    fontSize: '14px',
+    fontWeight: 'bold'
+  },
+  '& .confidence': {
+    color: '#999',
+    fontSize: '12px',
+    display: 'flex',
+    gap: '4px',
+    alignItems: 'center',
+    whiteSpace: 'nowrap'
+  },
+  '& .confidence-label': {
+    color: '#666',
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    marginRight: '4px'
+  }
 });
 
 const IconWrapper = styled(Box)({
@@ -101,7 +122,34 @@ const IconWrapper = styled(Box)({
   }
 });
 
-function AttributeGrid({ type, onSearch, searchTerm, highlightedHeroId }) {
+const EmptySlot = styled(Box)({
+  width: '40px',
+  height: '65px',
+  backgroundColor: 'transparent',
+  minWidth: '40px'
+});
+
+const ContentWrapper = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+  maxWidth: '100%',
+  overflow: 'visible'
+});
+
+const displayNameMap = {
+  'zuus': 'Zeus',
+  'wisp': 'IO',
+  'rattletrap': 'Clockwork',
+  'furion': "Nature's Prophet",
+  'shredder': 'Timbersaw',
+  'abyssal_underlord': 'Underlord',
+  'skeleton_king': 'Wraith King',
+  // Add any other name mappings here
+};
+
+function AttributeGrid({ type, searchTerm, highlightedHeroId }) {
   const [heroes, setHeroes] = useState([]);
   const [error, setError] = useState(null);
   const { state, dispatch } = useDraftContext();
@@ -110,40 +158,41 @@ function AttributeGrid({ type, onSearch, searchTerm, highlightedHeroId }) {
     const fetchHeroes = async () => {
       try {
         setError(null);
-        const filteredHeroes = [];
+        
+        const filteredHeroes = state.heroes.filter(hero => {
+          const attr = hero.primary_attr;
+          return (() => {
+            switch(type) {
+              case 'STRENGTH': return attr === 'str';
+              case 'AGILITY': return attr === 'agi';
+              case 'INTELLIGENCE': return attr === 'int';
+              case 'UNIVERSAL': return attr === 'all';
+              default: return false;
+            }
+          })();
+        });
+        
         setHeroes(filteredHeroes);
       } catch (error) {
-        console.error('Error fetching heroes:', error);
+        console.error('Error in AttributeGrid:', error);
         setError(error.message);
-        setHeroes([]);
       }
     };
 
     fetchHeroes();
-  }, [type]);
-
-  const handleKeyPress = useCallback((event) => {
-    if (type !== 'STRENGTH') return;
-    
-    const key = event.key.toLowerCase();
-    
-    if (/^[a-z0-9]$/.test(key)) {
-      onSearch(prev => {
-        const newTerm = (prev + key).toLowerCase();
-        return newTerm;
-      });
-    }
-  }, [type, onSearch]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleKeyPress]);
+  }, [type, state.heroes]);
 
   if (error) {
     return (
       <GridContainer>
-        <Typography color="error">Error: {error}</Typography>
+        <Typography 
+          color="error" 
+          sx={{ 
+            color: 'Mark'
+          }}
+        >
+          Error: {error}
+        </Typography>
       </GridContainer>
     );
   }
@@ -163,33 +212,48 @@ function AttributeGrid({ type, onSearch, searchTerm, highlightedHeroId }) {
   };
 
   return (
-    <GridContainer>
-      <AttributeHeader>
-        <IconWrapper>{getAttributeIcon()}</IconWrapper>
-        <AttributeLabel>{type}</AttributeLabel>
-      </AttributeHeader>
-      <GridSection>
-        {heroes.map(hero => (
-          <HeroSlot
-            key={hero.id}
-            id={`hero-${hero.id}`}
-            hasHero={true}
-            isHighlighted={hero.id === highlightedHeroId}
-            $hasHighlightedHero={highlightedHeroId !== null}
-            onClick={() => handleHeroClick(hero)}
-          >
-            <HeroImage 
-              src={hero.gridImage}
-              alt={hero.name}
-              loading="lazy"
-            />
-            <HeroTooltip className="hero-tooltip">
-              {hero.name}
-            </HeroTooltip>
-          </HeroSlot>
-        ))}
-      </GridSection>
-    </GridContainer>
+    <ContentWrapper>
+      <GridContainer>
+        <AttributeHeader>
+          <IconWrapper>{getAttributeIcon()}</IconWrapper>
+          <AttributeLabel>{type}</AttributeLabel>
+        </AttributeHeader>
+        <GridSection>
+          {heroes.map((hero, index) => (
+            <HeroCard
+              key={hero.id}
+              id={`hero-${hero.id}`}
+              isHighlighted={Array.isArray(highlightedHeroId) ? 
+                highlightedHeroId.includes(hero.id) : 
+                hero.id === highlightedHeroId}
+              hasHighlightedHero={highlightedHeroId !== null}
+              sx={{
+                border: hero.id === highlightedHeroId ? '2px solid #4CAF50' : 'none'
+              }}
+              onClick={() => handleHeroClick(hero)}
+            >
+              <HeroImage 
+                src={hero.gridImage}
+                alt={hero.name}
+                loading="lazy"
+              />
+              <HeroTooltip className="hero-tooltip">
+                <Typography className="hero-name">
+                  {hero.localized_name}
+                </Typography>
+                <Typography className="confidence">
+                  <span className="confidence-label">Confidence Score:</span>
+                  <span>{hero.confidence}%</span>
+                </Typography>
+              </HeroTooltip>
+            </HeroCard>
+          ))}
+          {[...Array(Math.max(0, 33 - heroes.length))].map((_, index) => (
+            <EmptySlot key={`empty-${index}`} />
+          ))}
+        </GridSection>
+      </GridContainer>
+    </ContentWrapper>
   );
 }
 

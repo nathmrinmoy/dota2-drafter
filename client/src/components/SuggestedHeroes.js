@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useDraftContext } from '../context/DraftContext';
@@ -80,6 +80,9 @@ const ConfidenceScore = styled(Typography)({
 function SuggestedHeroes() {
   const { state, dispatch } = useDraftContext();
   const [clickTimeout, setClickTimeout] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const handleHeroClick = (hero) => {
     if (clickTimeout) {
@@ -102,7 +105,6 @@ function SuggestedHeroes() {
       setClickTimeout(null);
     }
 
-    // Find first empty slot in ally team
     const emptySlotIndex = state.allyTeam.findIndex(slot => slot === null);
     if (emptySlotIndex !== -1) {
       dispatch({
@@ -115,51 +117,69 @@ function SuggestedHeroes() {
     }
   };
 
-  // Cleanup timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-      }
-    };
-  }, [clickTimeout]);
-
-  const getSuggestions = async () => {
+  const getSuggestions = () => {
     try {
-      const suggestions = await awsWrapper.callService(
-        'SuggestedHeroes',
-        'getSuggestions',
-        {
-          allyTeam: state.allyTeam,
-          enemyTeam: state.enemyTeam,
-          userPreferences: currentUser.preferences
+      setError(null);
+      setLoading(true);
+
+      if (!state.heroes || !state.heroes.length) {
+        return [];
+      }
+
+      const availableHeroes = state.heroes.filter(hero => {
+        if (!hero) return false;
+        if (state.selectedRole !== 'ALL' && !hero.roles?.includes(state.selectedRole)) {
+          return false;
         }
-      );
-
-      // Track suggestions in batch
-      await awsWrapper.batchCall(
-        suggestions.map(suggestion => ({
-          component: 'SuggestedHeroes',
-          method: 'trackSuggestionAccuracy',
-          args: [suggestion.id]
-        }))
-      );
-
-      return suggestions;
-    } catch (error) {
-      console.error('Error getting suggestions:', error);
-      // Show user-friendly error message
-      dispatch({ 
-        type: 'SET_ERROR', 
-        payload: 'Unable to load suggestions. Please try again.' 
+        return !state.allyTeam.some(ally => ally?.id === hero.id) &&
+               !state.enemyTeam.some(enemy => enemy?.id === hero.id);
       });
+
+      return availableHeroes.slice(0, 5).map(hero => ({
+        ...hero,
+        confidence: Math.floor(Math.random() * 30) + 70
+      }));
+    } catch (err) {
+      setError('Error getting suggestions');
+      console.error('Error in getSuggestions:', err);
       return [];
+    } finally {
+      setLoading(false);
     }
   };
 
-  const suggestions = getSuggestions();
+  useEffect(() => {
+    setError(null);
+    setLoading(true);
+    
+    try {
+      const newSuggestions = getSuggestions();
+      setSuggestions(newSuggestions);
+    } catch (err) {
+      setError('Error getting suggestions');
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [state.heroes, state.allyTeam, state.enemyTeam, state.selectedRole]);
 
-  if (suggestions.length === 0) {
+  if (loading) {
+    return (
+      <Container>
+        <Typography color="#666">Loading suggestions...</Typography>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Typography color="error">{error}</Typography>
+      </Container>
+    );
+  }
+
+  if (!suggestions || suggestions.length === 0) {
     return (
       <Container>
         <Typography 
@@ -196,11 +216,21 @@ function SuggestedHeroes() {
             }}
           >
             <HeroImage>
-              <img src={hero.fullImageUrl} alt={hero.name} />
+              <img 
+                src={`https://cdn.dota2.com/apps/dota2/images/heroes/${hero.name}_full.png`}
+                alt={hero.localized_name}
+                onError={(e) => {
+                  if (e.target.src.includes('_full.png')) {
+                    e.target.src = `https://cdn.dota2.com/apps/dota2/images/heroes/${hero.name}_sb.png`;
+                  } else if (e.target.src.includes('_sb.png')) {
+                    e.target.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${hero.name}.png`;
+                  }
+                }}
+              />
             </HeroImage>
             <ConfidenceBar>
               {getConfidenceDots(hero.confidence).map((filled, index) => (
-                <Dot key={index} filled={filled} />
+                <Dot key={index} filled={filled.toString()} />
               ))}
             </ConfidenceBar>
             <ConfidenceScore>

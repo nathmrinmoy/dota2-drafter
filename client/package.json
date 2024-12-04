@@ -1,10 +1,11 @@
 {
-  "name": "client",
-  "version": "0.1.0",
+  "name": "dota2-draft-picker",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
+    "@fontsource/island-moments": "^5.1.0",
     "@mui/icons-material": "^6.1.9",
     "@mui/material": "^6.1.9",
     "@testing-library/jest-dom": "^5.17.0",

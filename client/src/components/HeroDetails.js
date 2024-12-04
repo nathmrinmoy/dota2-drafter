@@ -1,27 +1,28 @@
-import React from 'react';
-import { Box, Typography, Tooltip } from '@mui/material';
+import React, { useRef, useEffect, useState } from 'react';
+import { Box, Typography, Chip } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import TalentTree from './TalentTree';
-import TalentTreeIcon from '../assets/icons/TalentTreeIcon';
-import AghanimIcon from '../assets/icons/AghanimIcon';
-import AghanimDetails from './AghanimDetails';
 import { useDraftContext } from '../context/DraftContext';
-import { StrengthIcon, AgilityIcon, IntelligenceIcon } from '../assets/icons/AttributeIcons';
-
-
 
 const Container = styled(Box)({
   backgroundColor: '#141619',
   color: '#fff',
   width: '350px',
-  height: '600px',
+  height: '700px',
   display: 'flex',
-  flexDirection: 'column'
+  flexDirection: 'column',
+  overflow: 'hidden',
+  userSelect: 'none'
 });
 
-// Hero Image Section
+const EmptyStateContainer = styled(Container)({
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '16px'
+});
+
 const TopSection = styled(Box)({
-  height: '160px'
+  height: '160px',
+  position: 'relative'
 });
 
 const ImageContainer = styled(Box)({
@@ -34,166 +35,84 @@ const ImageContainer = styled(Box)({
   }
 });
 
-// Abilities Section
-const AbilitiesSection = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: '8px',
-  padding: '16px',
-  height: '60px',
-  position: 'relative'
-});
-
-// Pros and Cons Section
-const ProConSection = styled(Box)({
-  padding: '16px',
-  flex: 1,  // Take remaining space
+const ImageOverlay = styled(Box)({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%)',
   display: 'flex',
   flexDirection: 'column',
-  gap: '24px'
+  justifyContent: 'flex-end',
+  padding: '16px'
 });
 
-const SectionTitle = styled(Typography)({
-  color: '#666',
-  fontSize: '12px',
-  letterSpacing: '1px',
-  textTransform: 'uppercase',
-  marginBottom: '8px'
+const HeroName = styled(Typography)({
+  color: '#ffffff',
+  fontSize: '24px',
+  fontWeight: 'bold',
+  textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
 });
 
-const ListItem = styled(Typography)({
-  color: '#999',
-  fontSize: '13px',
-  marginBottom: '4px',
+const TagsContainer = styled(Box)({
   display: 'flex',
-  alignItems: 'center',
   gap: '8px',
-  '&::before': {
-    content: '"•"',
-    color: '#666'
+  flexWrap: 'nowrap',
+  overflow: 'hidden'
+});
+
+const RoleChip = styled(Chip)({
+  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  color: '#fff',
+  flexShrink: 0,
+  '&:hover': {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)'
   }
 });
 
-// Remove Button Section
+const ProConSection = styled(Box)({
+  padding: '16px',
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '24px',
+  overflow: 'auto',
+  paddingRight: '20px',
+  '&:hover': {
+    paddingRight: '16px'
+  },
+  '&::-webkit-scrollbar': {
+    width: '4px',
+    display: 'none'
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '2px'
+  },
+  '&::-webkit-scrollbar-button': {
+    display: 'none'
+  },
+  '&:hover::-webkit-scrollbar': {
+    display: 'block'
+  }
+});
+
 const ButtonSection = styled(Box)({
   padding: '16px',
   marginTop: 'auto',
   display: 'flex',
   gap: '8px',
-  justifyContent: 'center'
-});
-
-const RemoveButton = styled(Box)({
-  width: '50%',
-  padding: '12px',
-  backgroundColor: '#333',
-  color: '#fff',
-  textAlign: 'center',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  '&:hover': {
-    backgroundColor: '#444'
-  }
-});
-
-// Ability related components
-const AbilityIcon = styled(Box)({
-  width: '48px',
-  height: '48px',
-  backgroundColor: '#1a1a1a',
-  borderRadius: '4px',
-  overflow: 'hidden',
-  flexShrink: 0,
-  '& img': {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover'
-  }
-});
-
-const AbilityContainer = styled(Box)({
-  display: 'flex',
-  gap: '8px',
   justifyContent: 'center',
-  flex: 1,
-  overflowX: 'auto',
-  padding: '4px'
+  position: 'sticky',
+  bottom: 0,
+  backgroundColor: '#141619',
+  borderTop: '1px solid rgba(255, 255, 255, 0.1)'
 });
 
-const IconWrapper = styled(Box)({
-  width: '48px',
-  height: '48px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: 'transparent',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  '&:hover': {
-    backgroundColor: 'rgba(34, 34, 34, 0.5)'
-  }
-});
-
-const StyledTalentIcon = styled(TalentTreeIcon)({
-  width: '48px',
-  height: '48px',
-  '& svg': {
-    width: '100%',
-    height: '100%'
-  }
-});
-
-const StyledAghanimIcon = styled(AghanimIcon)({
-  width: '48px',
-  height: '48px',
-  '& svg': {
-    width: '100%',
-    height: '100%'
-  }
-});
-
-const ExtraAbilitiesContainer = styled(Box)({
-  position: 'absolute',
-  top: 'calc(100% + 8px)',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  backgroundColor: '#1a1a1a',
-  borderRadius: '4px',
-  padding: '8px',
-  display: 'flex',
-  gap: '8px',
-  zIndex: 10,
-  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-});
-
-const MoreAbilitiesIcon = styled(Box)({
-  width: '48px',
-  height: '48px',
-  backgroundColor: '#1a1a1a',
-  borderRadius: '4px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#fff',
-  fontSize: '16px',
-  cursor: 'pointer',
-  position: 'relative',
-  '&:hover': {
-    backgroundColor: '#262626'
-  }
-});
-
-// Pros and Cons sections
-const ProSection = styled(Box)({
-  flex: 1
-});
-
-const ConSection = styled(Box)({
-  flex: 1
-});
-
-// Action buttons
 const ActionButton = styled(Box)(({ color }) => ({
   width: '50%',
   padding: '12px',
@@ -207,15 +126,90 @@ const ActionButton = styled(Box)(({ color }) => ({
   }
 }));
 
-const EmptyHeroDetails = styled(Typography)({
+const HeroImage = styled('img')({
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  borderRadius: '4px',
+  backgroundColor: '#1e1e1e',
+  '&.loading': {
+    backgroundColor: '#1e1e1e',
+    animation: 'pulse 1.5s infinite'
+  }
+});
+
+const DetailsContainer = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%'
+});
+
+const HeroImageSection = styled(Box)({
+  height: '200px',
+  width: '100%',
+  position: 'relative'
+});
+
+const MatchupSection = styled(Box)({
+  flex: 1,
+  padding: '16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px'
+});
+
+const HeroMatchup = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  '& img': {
+    width: '32px',
+    height: '32px',
+    borderRadius: '4px'
+  }
+});
+
+const SectionTitle = styled(Typography)({
   color: '#999',
-  fontSize: '16px',
-  textAlign: 'center',
-  padding: '16px'
+  fontSize: '14px',
+  textTransform: 'uppercase',
+  marginBottom: '12px',
+  letterSpacing: '1px'
+});
+
+const AdvantageList = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px'
+});
+
+const AdvantageItem = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 12px',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  borderRadius: '4px',
+  '& img': {
+    width: '24px',
+    height: '24px',
+    borderRadius: '2px'
+  }
 });
 
 function HeroDetails({ selectedHero }) {
   const { state, dispatch } = useDraftContext();
+  const containerRef = useRef(null);
+  const [visibleRoles, setVisibleRoles] = useState([]);
+
+  useEffect(() => {
+    if (selectedHero && containerRef.current) {
+      const containerWidth = containerRef.current.offsetWidth;
+      const chipWidth = 70;
+      const maxChips = Math.floor(containerWidth / chipWidth);
+      setVisibleRoles(selectedHero.roles.slice(0, maxChips));
+    }
+  }, [selectedHero]);
 
   const handleTeamAdd = (team) => {
     const teamArray = team === 'ally' ? state.allyTeam : state.enemyTeam;
@@ -232,188 +226,105 @@ function HeroDetails({ selectedHero }) {
     }
   };
 
-  const handleRemove = () => {
-    const allyIndex = state.allyTeam.findIndex(hero => hero?.id === selectedHero.id);
-    const enemyIndex = state.enemyTeam.findIndex(hero => hero?.id === selectedHero.id);
-
-    if (allyIndex !== -1) {
-      dispatch({
-        type: 'SET_ALLY_HERO',
-        payload: {
-          position: allyIndex,
-          hero: null
-        }
-      });
-    }
-
-    if (enemyIndex !== -1) {
-      dispatch({
-        type: 'SET_ENEMY_HERO',
-        payload: {
-          position: enemyIndex,
-          hero: null
-        }
-      });
-    }
-  };
-
-  const isHeroInTeams = () => {
-    return state.allyTeam.some(hero => hero?.id === selectedHero.id) ||
-           state.enemyTeam.some(hero => hero?.id === selectedHero.id);
+  const getHeroAdvantages = () => {
+    return {
+      pros: [
+        { hero: 'crystal_maiden', reason: 'Strong against low mobility' },
+        { hero: 'drow_ranger', reason: 'Can easily close gap' },
+        { hero: 'sniper', reason: 'High burst damage' }
+      ],
+      cons: [
+        { hero: 'axe', reason: 'Vulnerable to disables' },
+        { hero: 'lion', reason: 'Weak against burst damage' },
+        { hero: 'lina', reason: 'Poor early game' }
+      ]
+    };
   };
 
   if (!selectedHero) {
     return (
-      <EmptyHeroDetails>
-        Select a hero to view or add to a team
-      </EmptyHeroDetails>
+      <EmptyStateContainer>
+        <Typography variant="h8" color="textSecondary">
+          Select a hero to view details
+        </Typography>
+      </EmptyStateContainer>
     );
   }
-
-  console.log('Selected Hero:', selectedHero); // Debug log
 
   return (
     <Container>
       <TopSection>
         <ImageContainer>
-          <img src={selectedHero.fullImageUrl} alt={selectedHero.name} />
+          <HeroImage 
+            src={selectedHero.fullImageUrl}
+            alt={selectedHero.localized_name}
+            loading="lazy"
+            onError={(e) => {
+              if (e.target.src.includes('_full.jpg')) {
+                e.target.src = selectedHero.gridImage;
+              }
+            }}
+          />
         </ImageContainer>
+        <ImageOverlay>
+          <HeroName>{selectedHero.localized_name}</HeroName>
+          <TagsContainer ref={containerRef}>
+            {visibleRoles.map(role => (
+              <RoleChip 
+                key={role} 
+                label={role}
+                size="small"
+              />
+            ))}
+          </TagsContainer>
+        </ImageOverlay>
       </TopSection>
 
-      <AbilitiesSection>
-        <Tooltip title={<TalentTree talents={selectedHero.talents} />}>
-          <IconWrapper>
-            <StyledTalentIcon />
-          </IconWrapper>
-        </Tooltip>
-        
-        <AbilityContainer>
-          {selectedHero.abilities && selectedHero.abilities.length > 4 ? (
-            <>
-              {/* Show first 2 abilities */}
-              {selectedHero.abilities.slice(0, 2).map((ability, index) => (
-                <AbilityIcon key={index}>
-                  <img 
-                    src={ability.icon[0]} 
-                    alt={ability.name}
-                    onError={(e) => {
-                      const currentIndex = ability.icon.indexOf(e.target.src);
-                      if (currentIndex < ability.icon.length - 1) {
-                        e.target.src = ability.icon[currentIndex + 1];
-                      } else {
-                        e.target.src = '/images/default_ability.png';
-                        e.target.onerror = null;
-                      }
-                    }}
-                  />
-                </AbilityIcon>
-              ))}
-              
-              {/* Show 4th ability */}
-              <AbilityIcon>
-                <img 
-                  src={selectedHero.abilities[3].icon[0]} 
-                  alt={selectedHero.abilities[3].name}
-                  onError={(e) => {
-                    const currentIndex = selectedHero.abilities[3].icon.indexOf(e.target.src);
-                    if (currentIndex < selectedHero.abilities[3].icon.length - 1) {
-                      e.target.src = selectedHero.abilities[3].icon[currentIndex + 1];
-                    } else {
-                      e.target.src = '/images/default_ability.png';
-                      e.target.onerror = null;
-                    }
-                  }}
-                />
-              </AbilityIcon>
-
-              {/* Show +n component with hover tooltip */}
-              <Tooltip
-                title={
-                  <ExtraAbilitiesContainer>
-                    {selectedHero.abilities.slice(4).map((ability, index) => (
-                      <AbilityIcon key={index}>
-                        <img 
-                          src={ability.icon[0]} 
-                          alt={ability.name}
-                          onError={(e) => {
-                            const currentIndex = ability.icon.indexOf(e.target.src);
-                            if (currentIndex < ability.icon.length - 1) {
-                              e.target.src = ability.icon[currentIndex + 1];
-                            } else {
-                              e.target.src = '/images/default_ability.png';
-                              e.target.onerror = null;
-                            }
-                          }}
-                        />
-                      </AbilityIcon>
-                    ))}
-                  </ExtraAbilitiesContainer>
-                }
-                placement="bottom"
-                arrow
-              >
-                <MoreAbilitiesIcon>
-                  +{selectedHero.abilities.length - 4}
-                </MoreAbilitiesIcon>
-              </Tooltip>
-            </>
-          ) : (
-            // Show all abilities if 4 or fewer
-            selectedHero.abilities?.map((ability, index) => (
-              <AbilityIcon key={index}>
-                <img 
-                  src={ability.icon[0]} 
-                  alt={ability.name}
-                  onError={(e) => {
-                    const currentIndex = ability.icon.indexOf(e.target.src);
-                    if (currentIndex < ability.icon.length - 1) {
-                      e.target.src = ability.icon[currentIndex + 1];
-                    } else {
-                      e.target.src = '/images/default_ability.png';
-                      e.target.onerror = null;
-                    }
-                  }}
-                />
-              </AbilityIcon>
-            ))
-          )}
-        </AbilityContainer>
-
-        <Tooltip title={<AghanimDetails aghanims={selectedHero.aghanims} />}>
-          <IconWrapper>
-            <StyledAghanimIcon />
-          </IconWrapper>
-        </Tooltip>
-      </AbilitiesSection>
-
       <ProConSection>
-        <ProSection>
-          <SectionTitle>PROS</SectionTitle>
-          {selectedHero.pros?.map((pro, index) => (
-            <ListItem key={index}>{pro}</ListItem>
-          ))}
-        </ProSection>
-        <ConSection>
-          <SectionTitle>CONS</SectionTitle>
-          {selectedHero.cons?.map((con, index) => (
-            <ListItem key={index}>{con}</ListItem>
-          ))}
-        </ConSection>
+        <Box>
+          <SectionTitle>Strong Against</SectionTitle>
+          <AdvantageList>
+            {getHeroAdvantages().pros.map((advantage, index) => (
+              <AdvantageItem key={index}>
+                <img 
+                  src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${advantage.hero}.png`}
+                  alt={advantage.hero}
+                />
+                <Typography>{advantage.reason}</Typography>
+              </AdvantageItem>
+            ))}
+          </AdvantageList>
+        </Box>
+
+        <Box>
+          <SectionTitle>Weak Against</SectionTitle>
+          <AdvantageList>
+            {getHeroAdvantages().cons.map((disadvantage, index) => (
+              <AdvantageItem key={index}>
+                <img 
+                  src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${disadvantage.hero}.png`}
+                  alt={disadvantage.hero}
+                />
+                <Typography>{disadvantage.reason}</Typography>
+              </AdvantageItem>
+            ))}
+          </AdvantageList>
+        </Box>
       </ProConSection>
 
       <ButtonSection>
-        {isHeroInTeams() ? (
-          <RemoveButton onClick={handleRemove}>REMOVE</RemoveButton>
-        ) : (
-          <>
-            <ActionButton color="#4CAF50" onClick={() => handleTeamAdd('ally')}>
-              + ALLY
-            </ActionButton>
-            <ActionButton color="#f44336" onClick={() => handleTeamAdd('enemy')}>
-              + ENEMY
-            </ActionButton>
-          </>
-        )}
+        <ActionButton 
+          color="#4CAF50"
+          onClick={() => handleTeamAdd('ally')}
+        >
+          ADD TO ALLY
+        </ActionButton>
+        <ActionButton 
+          color="#f44336"
+          onClick={() => handleTeamAdd('enemy')}
+        >
+          ADD TO ENEMY
+        </ActionButton>
       </ButtonSection>
     </Container>
   );

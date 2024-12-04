@@ -1,45 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { ThemeProvider, createTheme } from '@mui/material';
+import React from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import { DraftContextProvider } from './context/DraftContext';
 import DraftingBoard from './components/DraftingBoard';
-import { EnhancedDashboard } from './components/ErrorMonitoring/EnhancedDashboard';
-import { metricsService } from './services/metricsService';
 
-const darkTheme = createTheme({
+const theme = createTheme({
   palette: {
     mode: 'dark',
+    background: {
+      default: '#121212',
+      paper: '#1e1e1e'
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: 'GrayText'
+    }
   },
   typography: {
     fontFamily: 'Radiance, Arial, sans-serif',
-    h1: {
-      fontFamily: 'Reaver, serif'
+    h1: { fontFamily: 'Reaver, serif' },
+    h2: { fontFamily: 'Reaver, serif' },
+    h3: { fontFamily: 'Reaver, serif' }
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        ':root': {
+          colorScheme: 'dark light'
+        },
+        body: {
+          backgroundColor: '#121212',
+          color: '#ffffff'
+        }
+      }
     },
-    h2: {
-      fontFamily: 'Reaver, serif'
-    },
-    h3: {
-      fontFamily: 'Reaver, serif'
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          '@media (forced-colors: active)': {
+            border: '1px solid currentColor'
+          }
+        }
+      }
     }
   }
 });
 
 function App() {
-  const [metrics, setMetrics] = useState(null);
-
-  useEffect(() => {
-    const updateMetrics = () => {
-      setMetrics(metricsService.getMetrics());
-    };
-
-    const interval = setInterval(updateMetrics, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
       <DraftContextProvider>
         <DraftingBoard />
-        {metrics && <EnhancedDashboard metrics={metrics} />}
       </DraftContextProvider>
     </ThemeProvider>
   );
